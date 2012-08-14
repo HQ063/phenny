@@ -108,8 +108,12 @@ class Phenny(irc.Bot):
             func.thread = True
 
          if not hasattr(func, 'event'): 
-            func.event = 'PRIVMSG'
-         else: func.event = func.event.upper()
+            func.event = ['PRIVMSG']
+         else: 
+             if isinstance(func.event, list):
+                 func.event = [element.upper() for element in func.event]
+             else:
+                 func.event = [func.event.upper()]
 
          if hasattr(func, 'rule'): 
             if isinstance(func.rule, str): 
@@ -205,8 +209,8 @@ class Phenny(irc.Bot):
          items = self.commands[priority].items()
          for regexp, funcs in items: 
             for func in funcs: 
-               if event != func.event: continue
-
+               if event not in func.event and '*' not in func.event: continue
+               if '!'+event in func.event: continue
                match = regexp.match(text)
                if match: 
                   if self.limit(origin, func): continue
