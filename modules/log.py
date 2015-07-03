@@ -21,17 +21,17 @@ def getCursor():
 		sqliteCursor = c
 	return sqliteCursor
 
-def printlog(phenny, to, log):
+def printlog(phenny, to, log, printId = False):
 	print >> sys.stderr, log
 	for x in log:
-		phenny.msg(to, x[2]+' '+x[0]+': '+x[1])
+		phenny.msg(to, ('['+str(x[3])+'] ' if printId else '') + x[2]+' '+x[0]+': '+x[1])
 
 def showlog(phenny, input):
 	printlog(phenny, input.nick, getCursor().execute('''SELECT user, message, datetime(datetime, '-3 hours') 
 									FROM messages
 									WHERE (channel = ? OR channel ='') 
 									AND datetime > (SELECT MAX(datetime) FROM messages WHERE event IN ('PART', 'QUIT') AND user = ?) 
-									ORDER BY datetime ASC''', (input.group() ,input.nick)))#
+									ORDER BY datetime ASC''', (input.sender ,input.nick)))#
 showlog.rule = r'.*'
 showlog.event = 'JOIN'
 showlog.priority = 'low'
@@ -66,6 +66,35 @@ log.thread = False
 # clearLog.commands = ['clearLog']
 # clearLog.priority = 'low'
 # clearLog.thread = False
+
+lastQuery = None
+lastPage = 0
+def searchLog(phenny, input):
+	global lastQuery, lastPage
+	query = '%'+input.group(2)+'%'
+	if query == lastQuery:
+		lastPage = lastPage + 1
+	else:
+		lastPage = 0
+	lastQuery = query
+	#pagina = 0#int(input.group(3)) if input.groups > 2 else 0
+	if not query:
+		return phenny.reply('.searchLog what?')
+	printlog(phenny, input.sender, getCursor().execute('''SELECT user, message, datetime(datetime, '-3 hours'), _rowid_ FROM messages WHERE message not like '.searchLog%' and (channel = ? OR channel ='') AND message LIKE ? ORDER BY datetime DESC LIMIT '''+str(lastPage*10)+''', 10''', (input.sender, query)), True)
+searchLog.commands = ['searchLog']
+searchLog.priority = 'high'
+searchLog.example = '.searchLog swhack'
+searchLog.thread = False
+
+def contextLog(phenny, input):
+	id = input.group(2)
+	if not id:
+                return phenny.reply('.contextLog what?')
+	printlog(phenny, input.sender, getCursor().execute('''select user, message, datetime(datetime, '-3 hours'), rowid from (select * from (select *,rowid from messages where rowid <= ? order by rowid desc limit 6) union select *,rowid from messages where rowid > ? order by rowid asc limit 11)''', (id, id)), True)
+contextLog.commands = ['contextLog']
+contextLog.priority = 'high'
+contextLog.example = '.contextLog swhack'
+contextLog.thread = False
 
 if __name__ == '__main__': 
    print __doc__.strip()
