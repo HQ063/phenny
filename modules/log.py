@@ -27,6 +27,8 @@ def printlog(phenny, to, log, printId = False):
 		phenny.msg(to, ('['+str(x[3])+'] ' if printId else '') + x[2]+' '+x[0]+': '+x[1])
 
 def showlog(phenny, input):
+	if input.nick != 'tarolandia' and input.nick != 'k4nd4lf' and input.nick!='HQ063':
+		return
 	printlog(phenny, input.nick, getCursor().execute('''SELECT user, message, datetime(datetime, '-3 hours') 
 									FROM messages
 									WHERE (channel = ? OR channel ='') 
